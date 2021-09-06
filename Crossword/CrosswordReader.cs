@@ -13,9 +13,6 @@ namespace crossword
         private readonly Field _field;
         private readonly Map<WordLength, Set<CrosswordBucket>> _buckets;
 
-        public static char VOWEL_SYMBOL = '+';
-        public static char CONSONANT_SYMBOL = '-';
-
         public Set<Word> Words => _words;
         public Field Field => _field;
         public Map<WordLength, Set<CrosswordBucket>> Buckets => _buckets;
@@ -28,7 +25,7 @@ namespace crossword
             var bucketLines = lines
                 .RemoveAt(0)
                 .RemoveAt(0)
-                .Map(line => line.Replace('X', CONSONANT_SYMBOL).Replace('O', VOWEL_SYMBOL));
+                .Map(line => line.Replace('X', (char)BucketSymbol.Consonant).Replace('O', (char)BucketSymbol.Vowel));
 
             _field = new Field(bucketLines);
 
@@ -36,7 +33,7 @@ namespace crossword
                 .Map((idx, line) => 
                     GetBucketsFromLine(
                         new Line(bucketLines[idx]),
-                        new Word(string.Empty),
+                        new BucketWord(Lst<BucketSymbol>.Empty),
                         new CrosswordCell(new RowIndex(idx), new RowIndex(0)),
                         Direction.Horizontal
                     ))
@@ -50,7 +47,7 @@ namespace crossword
                 .Map((idx, line) =>
                     GetBucketsFromLine(
                         new Line(transposedBucketLines[idx]),
-                        new Word(string.Empty),
+                        new BucketWord(Lst<BucketSymbol>.Empty),
                         new CrosswordCell(new RowIndex(idx), new RowIndex(0)),
                         Direction.Vertical
                     ))
@@ -58,61 +55,62 @@ namespace crossword
 
             _buckets = horizontalBuckets
                 .AddRange(verticalBuckets)
-                .GroupBy(bucket => new WordLength(bucket.Word.Value.Length))
+                .GroupBy(bucket => new WordLength(bucket.Word.Symbols.Count))
                 .ToDictionary(group => group.Key, group => new Set<CrosswordBucket>(group.ToList()))
                 .ToMap(); 
         }
 
-        Lst<CrosswordBucket> GetBucketsFromLine(Line lineSuffix, Word currentPrefix, CrosswordCell cell, Direction direction)
+        Lst<CrosswordBucket> GetBucketsFromLine(Line lineSuffix, BucketWord currentPrefix, CrosswordCell cell, Direction direction)
         {
             if (lineSuffix.Value.Length == 0)
             {
-                if (currentPrefix.Value.Length <= 1)
+                if (currentPrefix.Symbols.Count <= 1)
                 {
                     return Lst<CrosswordBucket>.Empty;
                 }
 
                 return List<CrosswordBucket>(
                     new CrosswordBucket(
-                        new CrosswordCell(cell.First, new RowIndex(cell.Second.Value - currentPrefix.Value.Length)),
+                        new CrosswordCell(cell.First, new RowIndex(cell.Second.Value - currentPrefix.Symbols.Count)),
                         direction,
-                        new Word(currentPrefix.Value)
+                        new BucketWord(currentPrefix.Symbols)
                     )
                 );
             } 
 
             char currentSymbol = lineSuffix.Value[0];
 
-            if (Char.IsWhiteSpace(currentSymbol)) {
-                if (currentPrefix.Value.Length <= 1) {
-                    return GetBucketsFromLine(
-                        new Line(lineSuffix.Value.Substring(1)),
-                        new Word(string.Empty),
-                        new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
-                        direction
-                    );
-                }
-                
-                var bucket = new CrosswordBucket(
-                    new CrosswordCell(cell.First, new RowIndex(cell.Second.Value - currentPrefix.Value.Length)),
-                    direction,
-                    new Word(currentPrefix.Value)
-                );
-
+            if (currentSymbol == (char)BucketSymbol.Vowel || currentSymbol == (char)BucketSymbol.Consonant)
+            {
                 return GetBucketsFromLine(
-                        new Line(lineSuffix.Value.Substring(1)),
-                        new Word(string.Empty),
-                        new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
-                        direction
-                    ).Add(bucket);
+                    new Line(lineSuffix.Value.Substring(1)),
+                    new BucketWord(currentPrefix.Symbols.Add((BucketSymbol)currentSymbol)),
+                    new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
+                    direction
+                );
             }
 
-            return GetBucketsFromLine(
-                new Line(lineSuffix.Value.Substring(1)),
-                new Word(currentPrefix.Value + currentSymbol),
-                new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
-                direction
+            if (currentPrefix.Symbols.Count <= 1) {
+                return GetBucketsFromLine(
+                    new Line(lineSuffix.Value.Substring(1)),
+                    new BucketWord(Lst<BucketSymbol>.Empty),
+                    new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
+                    direction
+                );
+            }
+            
+            var bucket = new CrosswordBucket(
+                new CrosswordCell(cell.First, new RowIndex(cell.Second.Value - currentPrefix.Symbols.Count)),
+                direction,
+                new BucketWord(currentPrefix.Symbols)
             );
+
+            return GetBucketsFromLine(
+                    new Line(lineSuffix.Value.Substring(1)),
+                    new BucketWord(Lst<BucketSymbol>.Empty),
+                    new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + 1)),
+                    direction
+                ).Add(bucket);
         }
     }
 }

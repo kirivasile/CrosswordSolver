@@ -48,11 +48,11 @@ namespace crossword
                 .Fold(Lst<Field>.Empty, (acc, field) => acc.AddRange(field));
         }
 
-        private static bool MatchChar(char wordChar, char bucketSymbol)
+        private static bool MatchChar(char wordChar, char bucketChar)
         {
-            return bucketSymbol == wordChar ||
-                bucketSymbol == CrosswordReader.VOWEL_SYMBOL && VOWELS.Contains(wordChar) ||
-                bucketSymbol == CrosswordReader.CONSONANT_SYMBOL && !VOWELS.Contains(wordChar) && Char.IsLetter(wordChar);
+            return bucketChar == wordChar ||
+                bucketChar == (char)BucketSymbol.Vowel && VOWELS.Contains(wordChar) ||
+                bucketChar == (char)BucketSymbol.Consonant && !VOWELS.Contains(wordChar) && Char.IsLetter(wordChar);
         }
 
         private static bool Match(Word word, Word bucketWord)

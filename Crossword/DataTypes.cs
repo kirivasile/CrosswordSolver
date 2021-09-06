@@ -6,9 +6,13 @@ using static LanguageExt.Prelude;
 
 namespace crossword
 {
+    public enum BucketSymbol { Vowel = '+', Consonant = '-' }
+
     public enum Direction { Horizontal, Vertical }
 
     public record Line(string Value) { }
+
+    public record BucketWord(Lst<BucketSymbol> Symbols) { }
 
     public class RowIndex : Record<RowIndex>
     {
@@ -58,9 +62,9 @@ namespace crossword
         public readonly Direction Direction;
 
         [NonOrd]
-        public readonly Word Word;
+        public readonly BucketWord Word;
 
-        public CrosswordBucket(CrosswordCell cell, Direction direction, Word word)
+        public CrosswordBucket(CrosswordCell cell, Direction direction, BucketWord word)
         {
             Cell = cell;
             Direction = direction;
@@ -97,7 +101,7 @@ namespace crossword
             if (bucket.Direction == Direction.Horizontal)
             {
                 var sb = new StringBuilder();
-                for (int i = 0; i < bucket.Word.Value.Length; ++i)
+                for (int i = 0; i < bucket.Word.Symbols.Count; ++i)
                 {
                     sb.Append(_field[new CrosswordCell(bucket.Cell.First, new RowIndex(bucket.Cell.Second.Value + i))]);
                 }
@@ -106,7 +110,7 @@ namespace crossword
             else
             {
                 var sb = new StringBuilder();
-                for (int i = 0; i < bucket.Word.Value.Length; ++i)
+                for (int i = 0; i < bucket.Word.Symbols.Count; ++i)
                 {
                     sb.Append(_field[new CrosswordCell(new RowIndex(bucket.Cell.Second.Value + i), bucket.Cell.First)]);
                 }

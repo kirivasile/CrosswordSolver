@@ -1,6 +1,8 @@
+using System;
 using System.Text;
 
 using LanguageExt;
+using static LanguageExt.Prelude;
 
 namespace crossword
 {
@@ -13,6 +15,16 @@ namespace crossword
         public readonly int Value;
 
         public RowIndex(int value)
+        {
+            Value = value;
+        }
+    }
+
+    public class WordLength : Record<WordLength>
+    {
+        public readonly int Value;
+
+        public WordLength(int value)
         {
             Value = value;
         }
@@ -56,45 +68,93 @@ namespace crossword
         }
     }
 
-    public struct Field
+    public class Field
     {
-        private readonly char[,] _field;
+        private readonly Map<CrosswordCell, char> _field;
+        private readonly RowIndex _fieldSize;
 
-        public Field(char[,] field)
+        public Field(Lst<string> lines)
         {
+            _fieldSize = new RowIndex(lines.Count);
+
+            _field = lines
+                .Map((i, line) => (i, line.Map((j, token) => (i, j, token))))
+                .Fold(Lst<(int, int, char)>.Empty, (acc, elem) => acc.AddRange(elem.Item2))
+                .ToDictionary(
+                    trio => new CrosswordCell(new RowIndex(trio.Item1), new RowIndex(trio.Item2)), 
+                    trio => trio.Item3)
+                .ToMap();
+        }
+
+        public Field(Map<CrosswordCell, char> field, RowIndex fieldSize)
+        {
+            _fieldSize = fieldSize;
             _field = field;
+        }
+
+        public Word GetWord(CrosswordBucket bucket)
+        {
+            if (bucket.Direction == Direction.Horizontal)
+            {
+                var sb = new StringBuilder();
+                for (int i = 0; i < bucket.Word.Value.Length; ++i)
+                {
+                    sb.Append(_field[new CrosswordCell(bucket.Cell.First, new RowIndex(bucket.Cell.Second.Value + i))]);
+                }
+                return new Word(sb.ToString());
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                for (int i = 0; i < bucket.Word.Value.Length; ++i)
+                {
+                    sb.Append(_field[new CrosswordCell(new RowIndex(bucket.Cell.Second.Value + i), bucket.Cell.First)]);
+                }
+                return new Word(sb.ToString());
+            }
         }
 
         public Field SetWord(Word word, CrosswordCell cell, Direction direction)
         {
-            var field = _field.Clone() as char[,];
-
+            var newField = _field;
             if (direction == Direction.Horizontal)
             {
-                for (int i = 0; i < word.Value.Length; ++i)
-                {
-                    field[cell.First.Value, cell.Second.Value + i] = word.Value[i];
-                }
+                return new Field(
+                    _field.AddOrUpdateRange(
+                        word.Value
+                            .Map((i, token) => (
+                                new CrosswordCell(cell.First, new RowIndex(cell.Second.Value + i)),
+                                token
+                            )
+                        )
+                    ),
+                    _fieldSize
+                );
             }
             else
             {
-                for (int j = 0; j < word.Value.Length; ++j)
-                {
-                    field[cell.Second.Value + j, cell.First.Value] = word.Value[j];
-                }
+                return new Field(
+                    _field.AddOrUpdateRange(
+                        word.Value
+                            .Map((i, token) => (
+                                new CrosswordCell(new RowIndex(cell.Second.Value + i), cell.First),
+                                token
+                            )
+                        )
+                    ),
+                    _fieldSize
+                );
             }
-
-            return new Field(field);
         }
 
         public override string ToString()
         {
             var builder = new StringBuilder();
-            for (int i = 0; i < _field.GetLength(0); ++i)
+            for (int i = 0; i < _fieldSize.Value; ++i)
             {
-                for (int j = 0; j < _field.GetLength(1); ++j)
+                for (int j = 0; j < _fieldSize.Value; ++j)
                 {
-                    builder.Append(_field[i, j]);
+                    builder.Append(_field[new CrosswordCell(new RowIndex(i), new RowIndex(j))]);
                 }
                 builder.AppendLine();
             }

@@ -18,6 +18,8 @@ namespace crossword
             Console.WriteLine($"Filling crossword..");
             var filler = new CrosswordFiller(reader.Words, reader.Buckets, reader.Field);
 
+            st.Stop();
+
             using (var writer = new StreamWriter(args[1]))
             {
                 var solutions = filler.GetSolutions();
@@ -29,6 +31,8 @@ namespace crossword
                     writer.WriteLine(solutions[i]);
                 }
             }
+
+            Console.WriteLine($"Working time of the algorithm {st.Elapsed}");
         }
     }
 }

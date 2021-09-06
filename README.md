@@ -3,5 +3,5 @@
 How to start:
 
 ```sh
-dotnet run input2.txt output.xt
+dotnet run input.txt output.xt
 ```

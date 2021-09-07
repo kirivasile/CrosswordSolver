@@ -74,10 +74,6 @@ namespace crossword
                 );
             } 
 
-            //char currentSymbol = lineSuffix.Value[0];
-
-            //if (currentSymbol == (char)BucketSymbol.Vowel || currentSymbol == (char)BucketSymbol.Consonant)
-
             var currentSymbol = lineSuffix.Tokens[0];
 
             if (currentSymbol.Value.IsLeft)

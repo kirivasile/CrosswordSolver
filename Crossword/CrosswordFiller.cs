@@ -10,12 +10,12 @@ namespace crossword
     class CrosswordFiller
     {
         private readonly Set<Word> _words;
-        private readonly Map<WordLength, Set<CrosswordBucket>> _buckets;
+        private readonly Map<BucketLength, Set<CrosswordBucket>> _buckets;
         private readonly Field _field;
 
         private readonly static Set<char> VOWELS = Set('a', 'ą', 'e', 'ę', 'ė', 'i', 'į', 'y', 'o', 'u', 'ų', 'ū');
 
-        public CrosswordFiller(Set<Word> words, Map<WordLength, Set<CrosswordBucket>> buckets, Field field)
+        public CrosswordFiller(Set<Word> words, Map<BucketLength, Set<CrosswordBucket>> buckets, Field field)
         {
             _words = words;
             _buckets = buckets;
@@ -29,13 +29,13 @@ namespace crossword
 
         private Lst<Field> GetRecursiveSolution(
             Field currentField,
-            Map<WordLength, Set<CrosswordBucket>> openBuckets,
+            Map<BucketLength, Set<CrosswordBucket>> openBuckets,
             Set<Word> notFilledWords)
         {
             if (openBuckets.IsEmpty || notFilledWords.IsEmpty) return List(currentField);
 
             var nextWord = notFilledWords.First();
-            var wordLength = new WordLength(nextWord.Value.Length);
+            var wordLength = new BucketLength(nextWord.Value.Length);
             var possibleBuckets = openBuckets[wordLength];
 
             return possibleBuckets
@@ -48,22 +48,22 @@ namespace crossword
                 .Fold(Lst<Field>.Empty, (acc, field) => acc.AddRange(field));
         }
 
-        private static bool MatchChar(char wordChar, char bucketChar)
+        private static bool MatchChar(char wordChar, FieldSymbol bucketSymbol)
         {
-            return bucketChar == wordChar ||
-                bucketChar == (char)BucketSymbol.Vowel && VOWELS.Contains(wordChar) ||
-                bucketChar == (char)BucketSymbol.Consonant && !VOWELS.Contains(wordChar) && Char.IsLetter(wordChar);
+            return bucketSymbol.Value.IsRight && Char.ToLower((char)bucketSymbol.Value) == wordChar ||
+                bucketSymbol.Value == BucketSymbol.Vowel && VOWELS.Contains(wordChar) ||
+                bucketSymbol.Value == BucketSymbol.Consonant && !VOWELS.Contains(wordChar) && Char.IsLetter(wordChar);
         }
 
-        private static bool Match(Word word, Word bucketWord)
+        private static bool Match(Word word, FieldWord bucketWord)
         {
-            if (word.Value.Length != bucketWord.Value.Length)
+            if (word.Value.Length != bucketWord.Tokens.Count)
             {
                 return false;
             }
 
             return word.Value.ToLower()
-                    .Zip(bucketWord.Value.ToLower())
+                    .Zip(bucketWord.Tokens)
                     .Map(charPair => MatchChar(charPair.Item1, charPair.Item2))
                     .ForAll(val => val);
         }
